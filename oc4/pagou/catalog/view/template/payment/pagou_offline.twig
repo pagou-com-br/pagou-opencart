@@ -1,0 +1,45 @@
+<div class="pagou-box" id="pagou-{{ code }}">
+  {% if sandbox %}<div class="alert alert-warning">{{ text_sandbox }}</div>{% endif %}
+  {% if instructions %}<p class="pagou-instructions">{{ instructions }}</p>{% endif %}
+  {% if need_document %}
+  <div class="mb-3 required">
+    <label class="form-label" for="pagou-document-{{ code }}">{{ text_document }}</label>
+    <input type="text" name="document" id="pagou-document-{{ code }}" class="form-control" inputmode="numeric" autocomplete="off" maxlength="18" />
+    <span class="form-text">{{ text_document_help }}</span>
+  </div>
+  {% endif %}
+  <div class="alert alert-danger pagou-error" style="display:none"></div>
+  <div class="buttons">
+    <div class="text-end">
+      <input type="button" value="{{ button_confirm }}" id="button-confirm" data-loading-text="{{ text_loading }}" class="btn btn-primary" />
+    </div>
+  </div>
+</div>
+<script type="text/javascript"><!--
+(function ($) {
+  var $box = $('#pagou-{{ code }}');
+  var $btn = $box.find('#button-confirm');
+  var busy = function (on) {
+    if ($.fn.button) { $btn.button(on ? 'loading' : 'reset'); } else { $btn.prop('disabled', on); }
+  };
+  $btn.off('click').on('click', function () {
+    $box.find('.pagou-error').hide();
+    $.ajax({
+      url: '{{ confirm_url }}',
+      type: 'post',
+      data: { document: $box.find('[name="document"]').val() || '' },
+      dataType: 'json',
+      beforeSend: function () { busy(true); },
+      success: function (json) {
+        if (json.redirect) { location = json.redirect; return; }
+        busy(false);
+        if (json.error) { $box.find('.pagou-error').text(json.error).show(); }
+      },
+      error: function (xhr) {
+        busy(false);
+        $box.find('.pagou-error').text(xhr.statusText || 'Erro').show();
+      }
+    });
+  });
+})(jQuery);
+//--></script>

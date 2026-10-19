@@ -1,0 +1,39 @@
+<div class="table-responsive">
+  <table class="table table-bordered table-sm">
+    <thead>
+      <tr>
+        <th>{{ lang.column_method }}</th>
+        <th>{{ lang.column_environment }}</th>
+        <th>{{ lang.column_id }}</th>
+        <th>{{ lang.column_status }}</th>
+        <th class="text-right">{{ lang.column_amount }}</th>
+        <th>{{ lang.column_date }}</th>
+        <th>{{ lang.column_checked }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in transactions %}
+      <tr>
+        <td>{{ t.method }}{% if t.installments > 1 %} ({{ t.installments }}x){% endif %}</td>
+        <td>{{ t.environment }}</td>
+        <td><code>{{ t.pagou_id|e }}</code></td>
+        <td><strong>{{ t.status }}</strong>{% if t.extra %}<br /><small class="text-muted">{{ t.extra|e }}</small>{% endif %}</td>
+        <td class="text-right">{{ t.amount }}</td>
+        <td>{{ t.date_added }}</td>
+        <td>{{ t.checked_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p>
+  <button type="button" class="btn btn-light btn-sm" id="pagou-refresh"><i class="fa-solid fa-rotate"></i> {{ lang.button_refresh }}</button>
+  <a href="{{ pay_url }}" target="_blank" rel="noopener" class="btn btn-link btn-sm">{{ lang.text_pay_link }}</a>
+</p>
+<script type="text/javascript"><!--
+$('#pagou-refresh').on('click', function () {
+  var $b = $(this).prop('disabled', true);
+  // A consulta roda na loja (mesmo código que o cliente usa) e aplica o status no pedido.
+  fetch({{ status_url|json_encode }}, { cache: 'no-store' }).then(function () { location.reload(); }, function () { $b.prop('disabled', false); });
+});
+//--></script>

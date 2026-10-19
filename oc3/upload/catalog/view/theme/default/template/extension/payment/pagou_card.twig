@@ -1,0 +1,145 @@
+<div class="pagou-box" id="pagou-pagou_card">
+  {% if sandbox %}<div class="alert alert-warning">{{ text_sandbox }}</div>{% endif %}
+  {% if instructions %}<p class="pagou-instructions">{{ instructions }}</p>{% endif %}
+  <form id="pagou-card-form" autocomplete="on" onsubmit="return false;">
+    <div class="row">
+      <div class="col-sm-8 form-group required">
+        <label class="control-label" for="pagou-card-number">{{ entry_card_number }}</label>
+        <input type="text" id="pagou-card-number" class="form-control" inputmode="numeric" autocomplete="cc-number" maxlength="23" />
+      </div>
+      <div class="col-sm-4 form-group required">
+        <label class="control-label" for="pagou-card-cvv">{{ entry_card_cvv }}</label>
+        <input type="text" id="pagou-card-cvv" class="form-control" inputmode="numeric" autocomplete="cc-csc" maxlength="4" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-8 form-group required">
+        <label class="control-label" for="pagou-card-holder">{{ entry_card_holder }}</label>
+        <input type="text" id="pagou-card-holder" class="form-control" autocomplete="cc-name" maxlength="60" />
+      </div>
+      <div class="col-sm-4 form-group required">
+        <label class="control-label" for="pagou-card-expiry">{{ entry_card_expiry }}</label>
+        <input type="text" id="pagou-card-expiry" class="form-control" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" maxlength="7" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-{{ need_document ? '6' : '12' }} form-group required">
+        <label class="control-label" for="pagou-card-installments">{{ entry_installments }}</label>
+        <select id="pagou-card-installments" class="form-control">
+          {% for i in installments %}<option value="{{ i.value }}">{{ i.text }}</option>{% endfor %}
+        </select>
+      </div>
+      {% if need_document %}
+      <div class="col-sm-6 form-group required">
+        <label class="control-label" for="pagou-card-document">{{ text_document }}</label>
+        <input type="text" id="pagou-card-document" class="form-control" inputmode="numeric" autocomplete="off" maxlength="18" />
+      </div>
+      {% endif %}
+    </div>
+  </form>
+  <div class="alert alert-danger pagou-error" style="display:none"></div>
+  <div class="buttons">
+    <div class="pull-right">
+      <input type="button" value="{{ button_confirm }}" id="button-confirm" data-loading-text="{{ text_loading }}" class="btn btn-primary" />
+    </div>
+  </div>
+</div>
+<script type="text/javascript"><!--
+(function ($) {
+  var PRODUCTION = {{ production ? 'true' : 'false' }};
+  var MSG_INVALID = {{ error_card_token|json_encode }};
+  var $box = $('#pagou-pagou_card');
+  var $btn = $box.find('#button-confirm');
+  var showError = function (msg) { $box.find('.pagou-error').text(msg).show(); };
+  var busy = function (on) {
+    if ($.fn.button) { $btn.button(on ? 'loading' : 'reset'); } else { $btn.prop('disabled', on); }
+  };
+
+  // Bibliotecas oficiais de tokenização (docs.pagou.com.br > Tokenizando um cartão)
+  // node-forge tem versão fixa: carrega com SRI. O script da Celcoin (js.cel.cash) não é versionado
+  // pela Pagou, então não há hash estável para ele (a doc oficial carrega igual).
+  var loadScript = function (src, integrity) {
+    return new Promise(function (resolve, reject) {
+      if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
+      var s = document.createElement('script');
+      s.src = src; s.referrerPolicy = 'no-referrer';
+      if (integrity) { s.integrity = integrity; s.crossOrigin = 'anonymous'; }
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  };
+  var libPromise = null;
+  var library = function () {
+    if (!libPromise) {
+      libPromise = loadScript('https://cdn.jsdelivr.net/npm/node-forge@1.0.0/dist/forge.min.js', 'sha384-kCnNHsI8E0Dde+7EKTwuDBCdtanGM4kajy5i02M0FFyawUCS8bGADvvmwgrGOF9P')
+        .then(function () { return loadScript('https://js.cel.cash/checkout-v2.min.js'); })
+        .then(function () {
+          if (typeof window.forge !== 'object' || typeof window.BaasCard !== 'function') { throw new Error('lib'); }
+          var lib = new window.BaasCard(PRODUCTION);
+          return Promise.resolve(lib._setPublicKey()).then(function () {
+            if (typeof lib._publicKey !== 'string' || lib._publicKey.length < 100) { throw new Error('key'); }
+            return lib;
+          });
+        })
+        .catch(function (e) { libPromise = null; throw e; });
+    }
+    return libPromise;
+  };
+  library().catch(function () {}); // pré-carrega
+
+  // Máscaras simples
+  $('#pagou-card-number').on('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ');
+  });
+  $('#pagou-card-expiry').on('input', function () {
+    var v = this.value.replace(/\D/g, '').slice(0, 4);
+    this.value = v.length > 2 ? v.slice(0, 2) + '/' + v.slice(2) : v;
+  });
+  $('#pagou-card-cvv').on('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 4); });
+
+  var expiresAt = function (mmYy) {
+    var m = /^(\d{2})\/(\d{2}|\d{4})$/.exec(mmYy.trim());
+    if (!m || +m[1] < 1 || +m[1] > 12) { return ''; }
+    var year = m[2].length === 2 ? '20' + m[2] : m[2];
+    return year + '-' + m[1];
+  };
+
+  $btn.off('click').on('click', function () {
+    $box.find('.pagou-error').hide();
+    var number = $('#pagou-card-number').val().replace(/\D/g, '');
+    var holder = $.trim($('#pagou-card-holder').val());
+    var expiry = expiresAt($('#pagou-card-expiry').val());
+    var cvv = $('#pagou-card-cvv').val();
+    if (number.length < 13 || holder.length < 2 || !expiry || cvv.length < 3) { showError(MSG_INVALID); return; }
+
+    busy(true);
+    library().then(function (lib) {
+      var card = lib.newCard({ number: number, holder: holder, expiresAt: expiry, cvv: cvv });
+      card.validate();
+      var token = card.encrypt(lib._publicKey);
+      if (typeof token !== 'string' || token.length < 64 || token.length > 16384 || !/^[A-Za-z0-9+/]+={0,2}$/.test(token)) { throw new Error('token'); }
+      // Número e CVV não saem do navegador: limpa os campos antes de enviar.
+      $('#pagou-card-number, #pagou-card-cvv').val('');
+      return $.ajax({
+        url: '{{ confirm_url }}',
+        type: 'post',
+        dataType: 'json',
+        data: {
+          card_token: token,
+          holder: holder,
+          expires_at: expiry,
+          installments: $('#pagou-card-installments').val(),
+          document: $('#pagou-card-document').val() || ''
+        }
+      });
+    }).then(function (json) {
+      if (json.redirect) { location = json.redirect; return; }
+      busy(false);
+      if (json.error) { showError(json.error); }
+    }, function (err) {
+      busy(false);
+      showError(err && err.statusText ? err.statusText : MSG_INVALID);
+    });
+  });
+})(jQuery);
+//--></script>

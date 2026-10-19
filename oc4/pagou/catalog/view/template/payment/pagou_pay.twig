@@ -1,0 +1,166 @@
+{{ header }}
+<div id="pagou-pay-page" class="container">
+  <ul class="breadcrumb">
+    {% for breadcrumb in breadcrumbs %}<li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>{% endfor %}
+  </ul>
+  <div class="row">{{ column_left }}
+    {% if column_left and column_right %}{% set class = 'col-sm-6' %}{% elseif column_left or column_right %}{% set class = 'col-sm-9' %}{% else %}{% set class = 'col-sm-12' %}{% endif %}
+    <div id="content" class="{{ class }}">{{ content_top }}
+      <h1>{{ heading_title }}</h1>
+      {% if view.sandbox %}<div class="alert alert-warning">{{ text_sandbox }}</div>{% endif %}
+
+      <div class="pagou-pay">
+        <p class="pagou-amount">{{ amount }}</p>
+
+        <div class="pagou-state pagou-state-paid alert alert-success" style="display:none">{{ text_paid }}</div>
+        <div class="pagou-state pagou-state-canceled alert alert-danger" style="display:none">{{ text_canceled }}</div>
+        <div class="pagou-state pagou-state-refunded alert alert-info" style="display:none">{{ text_refunded }}</div>
+        <div class="pagou-state pagou-state-expired alert alert-danger" style="display:none">{{ text_pix_expired }}</div>
+
+        <div class="pagou-open">
+          {% if view.method == 'pix' %}
+          <div class="pagou-pix text-center">
+            <p>{{ text_pix_instructions }}</p>
+            <img class="pagou-qr" alt="QR Code Pix" />
+            <textarea class="form-control pagou-code" rows="3" readonly>{{ view.pix_code|e }}</textarea>
+            <button type="button" class="btn btn-primary pagou-copy" data-target=".pagou-pix .pagou-code">{{ text_pix_copy }}</button>
+            <p class="pagou-countdown text-muted" style="display:none">{{ text_pix_expires }} <strong></strong></p>
+          </div>
+          {% elseif view.method == 'boleto' %}
+          <div class="pagou-boleto">
+            <p class="pagou-boleto-wait"><i class="fa-solid fa-spinner fa-spin"></i> {{ text_boleto_generating }}</p>
+            <div class="pagou-boleto-ready" style="display:none">
+              {% if boleto_due %}<p>{{ boleto_due }}</p>{% endif %}
+              <label>{{ text_boleto_line }}</label>
+              <textarea class="form-control pagou-line" rows="2" readonly></textarea>
+              <p class="pagou-actions">
+                <button type="button" class="btn btn-primary pagou-copy" data-target=".pagou-boleto .pagou-line">{{ text_boleto_copy }}</button>
+                <a class="btn btn-light pagou-open-html" target="_blank" rel="noopener">{{ text_boleto_open }}</a>
+                <a class="btn btn-light pagou-open-pdf" target="_blank" rel="noopener">{{ text_boleto_pdf }}</a>
+              </p>
+              <div class="pagou-boleto-pix text-center" style="display:none">
+                <p>{{ text_boleto_pix }}</p>
+                <img class="pagou-qr" alt="QR Code Pix" />
+                <textarea class="form-control pagou-code" rows="3" readonly></textarea>
+                <button type="button" class="btn btn-light pagou-copy" data-target=".pagou-boleto-pix .pagou-code">{{ text_pix_copy }}</button>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="pagou-card"><p><i class="fa-solid fa-spinner fa-spin"></i> {{ text_card_review }}</p></div>
+          {% endif %}
+          <p class="pagou-waiting text-muted"><i class="fa-solid fa-circle-notch fa-spin"></i> {{ text_waiting }}</p>
+          {% if simulate_url %}
+          <p><button type="button" class="btn btn-warning btn-sm pagou-simulate">Sandbox: simular pagamento</button></p>
+          {% endif %}
+        </div>
+
+        <div class="buttons">
+          {% if orders %}<a href="{{ orders }}" class="btn btn-light">{{ button_my_orders }}</a>{% endif %}
+          <a href="{{ continue }}" class="btn btn-primary float-end">{{ button_continue_shopping }}</a>
+        </div>
+      </div>
+      {{ content_bottom }}</div>
+    {{ column_right }}</div>
+</div>
+<style>
+.pagou-pay{max-width:560px}
+.pagou-amount{font-size:18px;font-weight:600}
+.pagou-qr{display:block;width:240px;max-width:100%;height:auto;margin:12px auto;image-rendering:pixelated}
+.pagou-code,.pagou-line{font-family:monospace;font-size:13px;margin-bottom:10px;resize:none}
+.pagou-actions .btn{margin:0 6px 6px 0}
+.pagou-waiting{margin-top:12px}
+</style>
+<script type="text/javascript"><!--
+(function () {
+  var root = document.getElementById('pagou-pay-page');
+  var view = {{ view_json }};
+  var statusUrl = {{ status_url|json_encode }};
+  var simulateUrl = {{ simulate_url|json_encode }};
+  var copiedText = {{ text_copied|json_encode }};
+  var $ = function (sel) { return root.querySelector(sel); };
+  var qrSrc = function (img) { return !img ? '' : (img.indexOf('data:') === 0 ? img : 'data:image/png;base64,' + img); };
+
+  var render = function (v) {
+    if (v.method === 'pix') {
+      var qr = $('.pagou-pix .pagou-qr');
+      if (qr && v.pix_image && !qr.getAttribute('src')) { qr.src = qrSrc(v.pix_image); }
+    }
+    if (v.method === 'boleto' && v.boleto_line) {
+      $('.pagou-boleto-wait').style.display = 'none';
+      $('.pagou-boleto-ready').style.display = '';
+      $('.pagou-line').value = v.boleto_line;
+      $('.pagou-open-html').href = v.boleto_html;
+      $('.pagou-open-pdf').href = v.boleto_pdf;
+      if (v.pix_code) {
+        $('.pagou-boleto-pix').style.display = '';
+        $('.pagou-boleto-pix .pagou-code').value = v.pix_code;
+        if (v.pix_image) { $('.pagou-boleto-pix .pagou-qr').src = qrSrc(v.pix_image); }
+      }
+    }
+    var simBtn = $('.pagou-simulate');
+    if (simBtn) {
+      // Sandbox: boleto só pode ser "pago" pela simulação através do Pix vinculado.
+      simBtn.parentNode.style.display = (v.method === 'pix' || v.pix_code) ? '' : 'none';
+    }
+    var state = v.paid ? 'paid' : (v.status === 'refunded' || v.status === 'chargeback' ? 'refunded' : (v.status === 'expired' ? 'expired' : (v.final ? 'canceled' : '')));
+    if (state) {
+      $('.pagou-open').style.display = 'none';
+      $('.pagou-state-' + state).style.display = '';
+    }
+    return !!state;
+  };
+
+  // Contagem regressiva do Pix
+  if (view.method === 'pix' && view.expires_at) {
+    var box = $('.pagou-countdown');
+    box.style.display = '';
+    var tick = function () {
+      var s = view.expires_at - Math.floor(Date.now() / 1000);
+      if (s <= 0) { box.querySelector('strong').textContent = '00:00'; return; }
+      var m = Math.floor(s / 60), r = s % 60;
+      box.querySelector('strong').textContent = (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+      setTimeout(tick, 1000);
+    };
+    tick();
+  }
+
+  // Copiar
+  Array.prototype.forEach.call(root.querySelectorAll('.pagou-copy'), function (btn) {
+    btn.addEventListener('click', function () {
+      var field = root.querySelector(btn.getAttribute('data-target'));
+      var label = btn.textContent;
+      var done = function () { btn.textContent = copiedText; setTimeout(function () { btn.textContent = label; }, 2000); };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(field.value).then(done);
+      } else {
+        field.select(); document.execCommand('copy'); done();
+      }
+    });
+  });
+
+  // Polling do status (o webhook confirma no servidor; aqui só reflete)
+  var finished = render(view);
+  var delay = 4000;
+  var poll = function () {
+    if (finished || document.hidden) { if (!finished) setTimeout(poll, delay); return; }
+    fetch(statusUrl, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (v) { if (v) { view = v; finished = render(v); } })
+      .catch(function () {})
+      .then(function () { if (!finished) { delay = Math.min(delay + 1000, 15000); setTimeout(poll, delay); } });
+  };
+  setTimeout(poll, 3000);
+
+  var sim = $('.pagou-simulate');
+  if (sim && simulateUrl) {
+    sim.addEventListener('click', function () {
+      sim.disabled = true;
+      fetch(simulateUrl, { method: 'POST', credentials: 'same-origin' }).then(function (r) { return r.json(); })
+        .then(function (j) { sim.textContent = j.result ? 'Simulação enviada, aguardando confirmação...' : ('Falhou: ' + (j.error || '')); delay = 3000; })
+        .catch(function () { sim.disabled = false; });
+    });
+  }
+})();
+//--></script>
+{{ footer }}

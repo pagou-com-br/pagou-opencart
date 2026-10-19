@@ -1,0 +1,203 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="float-end">
+        <button type="submit" form="form-payment" data-bs-toggle="tooltip" title="{{ lang.button_save }}" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i></button>
+        <a href="{{ back }}" data-bs-toggle="tooltip" title="{{ lang.button_back }}" class="btn btn-light"><i class="fa-solid fa-reply"></i></a>
+      </div>
+      <h1>{{ heading_title }}</h1>
+      <ol class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}<li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>{% endfor %}
+      </ol>
+    </div>
+  </div>
+  <div class="container-fluid">
+    {% set p = prefix %}
+    <form id="form-payment" action="{{ save }}" method="post" data-oc-toggle="ajax">
+
+      <div class="card mb-3">
+        <div class="card-header"><i class="fa-solid fa-pencil"></i> {{ lang.text_method }}</div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ lang.entry_status }}</label>
+            <div class="col-sm-10">
+              <select name="{{ p }}status" class="form-select">
+                <option value="1" {{ v[p ~ 'status'] ? 'selected' }}>{{ lang.text_enabled }}</option>
+                <option value="0" {{ not v[p ~ 'status'] ? 'selected' }}>{{ lang.text_disabled }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ lang.help_title }}">{{ lang.entry_title }}</span></label>
+            <div class="col-sm-10"><input type="text" name="{{ p }}title" value="{{ v[p ~ 'title']|e }}" class="form-control" /></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ lang.entry_instructions }}</label>
+            <div class="col-sm-10"><textarea name="{{ p }}instructions" rows="2" class="form-control">{{ v[p ~ 'instructions']|e }}</textarea></div>
+          </div>
+          {% for f in method_fields %}
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{% if f.help %}<span data-bs-toggle="tooltip" title="{{ f.help }}">{{ f.label }}</span>{% else %}{{ f.label }}{% endif %}</label>
+            <div class="col-sm-10"><input type="number" step="any" min="0" name="{{ f.key }}" value="{{ v[f.key]|e }}" class="form-control" /></div>
+          </div>
+          {% endfor %}
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ lang.help_total }}">{{ lang.entry_total }}</span></label>
+            <div class="col-sm-10"><input type="number" step="0.01" min="0" name="{{ p }}total" value="{{ v[p ~ 'total']|e }}" class="form-control" /></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ lang.entry_geo_zone }}</label>
+            <div class="col-sm-10">
+              <select name="{{ p }}geo_zone_id" class="form-select">
+                <option value="0">{{ lang.text_all_zones }}</option>
+                {% for g in geo_zones %}<option value="{{ g.geo_zone_id }}" {{ g.geo_zone_id == v[p ~ 'geo_zone_id'] ? 'selected' }}>{{ g.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ lang.entry_sort_order }}</label>
+            <div class="col-sm-10"><input type="number" name="{{ p }}sort_order" value="{{ v[p ~ 'sort_order']|e }}" class="form-control" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header"><i class="fa-solid fa-key"></i> {{ lang.text_shared }}</div>
+        <div class="card-body">
+          <p class="text-muted">{{ lang.text_shared_help }}</p>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ lang.entry_environment }}</label>
+            <div class="col-sm-10">
+              <select name="payment_pagou_environment" id="pagou-environment" class="form-select">
+                <option value="sandbox" {{ v.payment_pagou_environment == 'sandbox' ? 'selected' }}>{{ lang.text_sandbox }}</option>
+                <option value="production" {{ v.payment_pagou_environment == 'production' ? 'selected' }}>{{ lang.text_production }}</option>
+              </select>
+            </div>
+          </div>
+          {% for env in ['sandbox', 'production'] %}
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ lang['entry_api_key_' ~ env] }}</label>
+            <div class="col-sm-10">
+              <div class="input-group">
+                <input type="password" name="payment_pagou_api_key_{{ env }}" id="pagou-key-{{ env }}" value="" placeholder="{{ has_key[env] ? lang.text_key_saved : '' }}" class="form-control" autocomplete="new-password" />
+                <button type="button" class="btn btn-outline-secondary pagou-test" data-env="{{ env }}"><i class="fa-solid fa-plug"></i> {{ lang.button_test }}</button>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          <div id="pagou-test-result"></div>
+
+          <fieldset>
+            <legend class="fs-6 fw-bold mt-3">{{ lang.text_test_mode }}</legend>
+            <p class="text-muted">{{ lang.text_test_mode_help }}</p>
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label">{{ lang.entry_restrict }}</label>
+              <div class="col-sm-10">
+                <select name="payment_pagou_restrict" class="form-select">
+                  <option value="1" {{ v.payment_pagou_restrict ? 'selected' }}>{{ lang.text_enabled }}</option>
+                  <option value="0" {{ not v.payment_pagou_restrict ? 'selected' }}>{{ lang.text_disabled }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ lang.help_restrict_ips }}">{{ lang.entry_restrict_ips }}</span></label>
+              <div class="col-sm-10"><textarea name="payment_pagou_restrict_ips" rows="2" class="form-control">{{ v.payment_pagou_restrict_ips|e }}</textarea></div>
+            </div>
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ lang.help_restrict_emails }}">{{ lang.entry_restrict_emails }}</span></label>
+              <div class="col-sm-10"><textarea name="payment_pagou_restrict_emails" rows="2" class="form-control">{{ v.payment_pagou_restrict_emails|e }}</textarea></div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="fs-6 fw-bold mt-3">{{ lang.text_fields }}</legend>
+            <p class="text-muted">{{ lang.text_fields_help }}</p>
+            {% for field in ['document_field', 'number_field', 'complement_field', 'neighborhood_field'] %}
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label">{{ lang['entry_' ~ field] }}</label>
+              <div class="col-sm-10">
+                {% set cur = v['payment_pagou_' ~ field] %}
+                <select name="payment_pagou_{{ field }}" class="form-select">
+                  <option value="">{{ lang.text_none }}</option>
+                  {% if field == 'neighborhood_field' or field == 'complement_field' %}
+                  <option value="address_2" {{ cur == 'address_2' ? 'selected' }}>{{ lang.text_address_2 }}</option>
+                  <option value="company" {{ cur == 'company' ? 'selected' }}>{{ lang.text_company }}</option>
+                  {% endif %}
+                  {% for cf in custom_fields %}<option value="{{ cf.id }}" {{ cur ~ '' == cf.id ~ '' ? 'selected' }}>{{ cf.name }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+            {% endfor %}
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ lang.help_ip_header }}">{{ lang.entry_ip_header }}</span></label>
+              <div class="col-sm-10">
+                <select name="payment_pagou_ip_header" class="form-select">
+                  <option value="">{{ lang.text_remote_addr }}</option>
+                  {% for h in ['CF-Connecting-IP', 'X-Real-IP', 'X-Forwarded-For'] %}<option value="{{ h }}" {{ v.payment_pagou_ip_header == h ? 'selected' }}>{{ h }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="fs-6 fw-bold mt-3">{{ lang.text_statuses }}</legend>
+            {% for st in ['pending', 'paid', 'canceled', 'expired', 'refunded', 'chargeback'] %}
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label">{{ lang['entry_status_' ~ st] }}</label>
+              <div class="col-sm-10">
+                <select name="payment_pagou_status_{{ st }}" class="form-select">
+                  {% if st != 'pending' and st != 'paid' %}<option value="0">{{ lang.text_no_change }}</option>{% endif %}
+                  {% for os in order_statuses %}<option value="{{ os.order_status_id }}" {{ os.order_status_id == v['payment_pagou_status_' ~ st] ? 'selected' }}>{{ os.name }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+            {% endfor %}
+          </fieldset>
+
+          <fieldset>
+            <legend class="fs-6 fw-bold mt-3">{{ lang.text_urls }}</legend>
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ lang.help_webhook }}">{{ lang.entry_webhook }}</span></label>
+              <div class="col-sm-10"><input type="text" readonly value="{{ webhook_url }}" class="form-control" /></div>
+            </div>
+            {% if cron_url %}
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ lang.help_cron }}">{{ lang.entry_cron }}</span></label>
+              <div class="col-sm-10"><input type="text" readonly value="{{ cron_url }}" class="form-control" /><span class="form-text">{{ lang.help_cron }}</span></div>
+            </div>
+            {% endif %}
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label">{{ lang.entry_debug }}</label>
+              <div class="col-sm-10">
+                <select name="payment_pagou_debug" class="form-select">
+                  <option value="0" {{ not v.payment_pagou_debug ? 'selected' }}>{{ lang.text_disabled }}</option>
+                  <option value="1" {{ v.payment_pagou_debug ? 'selected' }}>{{ lang.text_enabled }}</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+          <p class="text-muted text-right"><small>{{ lang.text_version|format(version) }}</small></p>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<script type="text/javascript"><!--
+$('.pagou-test').on('click', function () {
+  var env = $(this).data('env'), $btn = $(this), html = $btn.html();
+  $.ajax({
+    url: '{{ test_url }}',
+    type: 'post',
+    dataType: 'json',
+    data: { environment: env, api_key: $('#pagou-key-' + env).val() },
+    beforeSend: function () { $btn.prop('disabled', true).text('{{ lang.text_testing }}'); },
+    complete: function () { $btn.prop('disabled', false).html(html); },
+    success: function (json) {
+      var cls = json.success ? 'success' : 'danger';
+      $('#pagou-test-result').html('<div class="alert alert-' + cls + '">' + $('<div/>').text(json.success || json.error).html() + '</div>');
+    }
+  });
+});
+//--></script>
+{{ footer }}

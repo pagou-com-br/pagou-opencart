@@ -1,4 +1,44 @@
-# Pagou para OpenCart
+<p align="center">
+  <img src="docs/hero.svg" alt="Pagou para OpenCart. Pix, Boleto e Cartão de Crédito." width="100%">
+</p>
+
+<p align="center">
+  <strong>Pagamentos integrados. Confirmação automática. Código aberto.</strong><br>
+  O módulo oficial da Pagou para receber na sua loja OpenCart.
+</p>
+
+<p align="center">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/vers%C3%A3o-1.0.0-0071df?style=flat-square" alt="Versão 1.0.0"></a>
+  <a href="#requisitos"><img src="https://img.shields.io/badge/OpenCart-3.0.x%20%7C%204.x-697ab1?style=flat-square" alt="OpenCart 3.0.x e 4.x"></a>
+  <a href="#requisitos"><img src="https://img.shields.io/badge/PHP-7.4%2B-697ab1?style=flat-square&amp;logo=php&amp;logoColor=white" alt="PHP 7.4 ou superior"></a>
+  <img src="https://img.shields.io/badge/idioma-Portugu%C3%AAs%20BR-15836b?style=flat-square" alt="Interface em português do Brasil">
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/status-Pr%C3%A9--release-b77919?style=flat-square" alt="Pré-release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-526475?style=flat-square" alt="Licença MIT"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.0.0/pagou-opencart3-1.0.0.ocmod.zip"><strong>Baixar para OpenCart 3.0.x (.zip)</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.0.0/pagou.ocmod.zip"><strong>Baixar para OpenCart 4.x (.zip)</strong></a>
+  <br>
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/tag/v1.0.0">Release notes</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.0.0/SHA256SUMS">Checksum SHA-256</a>
+</p>
+
+<p align="center">
+  <a href="#recursos">Recursos</a> ·
+  <a href="#requisitos">Requisitos</a> ·
+  <a href="#instalacao">Instalação</a> ·
+  <a href="#configuracao">Configuração</a> ·
+  <a href="#atualizacao">Atualização</a> ·
+  <a href="#seguranca">Segurança</a> ·
+  <a href="#licenca">Licença</a>
+</p>
+
+> **Pré-release `1.0.0`.** Em validação na primeira loja piloto. Teste no Sandbox, com o
+> **Modo de teste** ligado, antes de abrir para os clientes. No OpenCart 4, o arquivo
+> **precisa** se chamar `pagou.ocmod.zip`: não renomeie.
 
 Receba por **Pix**, **Boleto** e **Cartão de crédito** na sua loja OpenCart usando a [Pagou](https://pagou.com.br).
 
@@ -6,6 +46,8 @@ Receba por **Pix**, **Boleto** e **Cartão de crédito** na sua loja OpenCart us
 | --- | --- | --- |
 | 3.0.x (3.0.2.0 a 3.0.5.x) | `pagou-opencart3-<versão>.ocmod.zip` | Em validação (loja piloto em 3.0.5.1) |
 | 4.0.2.x e 4.1.x | `pagou.ocmod.zip` | Em validação; 4.0.0/4.0.1 não suportados (rotas com `|`). A aba "Pagou" no pedido do admin exige 4.0.2.3+ (bug do core no 4.0.2.0-4.0.2.2) |
+
+<a id="recursos"></a>
 
 ## O que a extensão faz
 
@@ -18,12 +60,16 @@ Receba por **Pix**, **Boleto** e **Cartão de crédito** na sua loja OpenCart us
 - **Aba "Pagou" no pedido** do admin, com o histórico das cobranças, a consulta manual e o link de pagamento do cliente.
 - Mapeamento de **CPF/CNPJ, número, complemento e bairro** para os campos personalizados que a loja já usa. Se a loja não coleta CPF/CNPJ, o checkout pede no passo de pagamento.
 
+<a id="requisitos"></a>
+
 ## Requisitos
 
 - PHP 7.4 ou superior, com `curl` e `json`.
 - Conta Pagou ativa e a chave de API do ambiente (painel Pagou: **Configurações → API**).
 - Para cartão: **credenciamento aprovado** (painel Pagou: **Configurações → Cartão de crédito**). No Sandbox a liberação é feita pelo suporte da Pagou.
 - Loja com HTTPS público, para receber os webhooks.
+
+<a id="instalacao"></a>
 
 ## Instalação
 
@@ -37,6 +83,8 @@ Receba por **Pix**, **Boleto** e **Cartão de crédito** na sua loja OpenCart us
 
 1. **Extensões → Instalador**: envie `pagou.ocmod.zip` e clique em instalar. O arquivo **precisa** se chamar `pagou.ocmod.zip`, porque o OpenCart 4 usa o nome do arquivo como código da extensão.
 2. **Extensões → Extensões → Pagamentos**: instale os meios desejados e configure como acima.
+
+<a id="configuracao"></a>
 
 ## Configuração recomendada
 
@@ -52,6 +100,8 @@ Receba por **Pix**, **Boleto** e **Cartão de crédito** na sua loja OpenCart us
 7. Para entrar em produção, troque para **Produção**, cole a chave de produção e desligue o **Modo de teste**.
 
 A URL de notificação (webhook) é enviada automaticamente em cada cobrança: não precisa cadastrar nada no painel da Pagou.
+
+<a id="atualizacao"></a>
 
 ## Atualização e desinstalação
 
@@ -103,12 +153,16 @@ php sdk/tests/run.php   # testes do SDK
 php build/build.php     # lint + pacotes em dist/
 ```
 
+<a id="seguranca"></a>
+
 ## Segurança
 
 - A chave de API fica só no servidor. A Pagou ecoa a chave em `metadata` nas respostas; o SDK remove isso antes de qualquer gravação.
 - Os webhooks são aceitos só com HMAC-SHA256 válido sobre `timestamp + corpo bruto`, com tolerância de 5 minutos.
 - O número do cartão e o CVV não chegam ao servidor da loja; só o token gerado no navegador.
 - A página de pagamento e a consulta de status exigem um token HMAC por pedido.
+
+<a id="licenca"></a>
 
 ## Licença
 

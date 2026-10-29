@@ -12,7 +12,7 @@ class PagouCard extends \Opencart\System\Library\Extension\Pagou\AdminBase {
 			'max_installments' => array('number', 6),
 			'free_installments' => array('number', ''),
 			'interest_mode' => array('select', 'price', array('price' => 'text_mode_price', 'table' => 'text_mode_table')),
-			'interest_rate' => array('number', 3.65),
+			'interest_rate' => array('number', 3.49),
 			'interest_table' => array('text', ''),
 			'min_installment' => array('number', 50),
 		);

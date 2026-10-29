@@ -77,7 +77,7 @@ $_['help_min_installment']    = 'Installments below this amount (interest includ
 $_['help_max_installments']   = '1 to 12. The card brand may also limit it.';
 $_['help_free_installments']  = 'Up to this count the store absorbs the fee. Above it, the buyer pays interest. Empty = all interest-free.';
 $_['help_interest_mode']      = 'The Pagou API only receives the total and the installment count: the store adds the interest to the order.';
-$_['help_interest_rate']      = 'Used by Monthly interest. Pagou suggests 3.65. 0 = no interest.';
+$_['help_interest_rate']      = 'Used by Monthly interest. Pagou suggests 3.49. 0 = no interest.';
 $_['help_interest_table']     = 'Used by Fixed surcharge. One per line or separated by semicolons: 4=6.5; 5=7.9. Counts above the interest-free range with no rate here are not offered.';
 $_['help_expiration']         = 'Minimum 1 minute.';
 

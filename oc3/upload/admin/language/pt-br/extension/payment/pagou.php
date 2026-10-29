@@ -77,7 +77,7 @@ $_['help_min_installment']    = 'Parcelas abaixo desse valor (já com juros) nã
 $_['help_max_installments']   = 'De 1 a 12. A bandeira do cartão também pode limitar.';
 $_['help_free_installments']  = 'Até esta quantidade a loja absorve a tarifa. Acima, o comprador paga juros. Vazio = todas sem juros.';
 $_['help_interest_mode']      = 'A API da Pagou recebe só o total e as parcelas: os juros são somados ao pedido pela loja.';
-$_['help_interest_rate']      = 'Usado em Juros ao mês. Sugestão da Pagou: 3,65. 0 = sem juros.';
+$_['help_interest_rate']      = 'Usado em Juros ao mês. Sugestão da Pagou: 3,49. 0 = sem juros.';
 $_['help_interest_table']     = 'Usado em Acréscimo fixo. Uma parcela por linha ou separadas por ponto e vírgula: 4=6,5; 5=7,9. Quantidade acima da faixa sem juros e sem taxa aqui não é oferecida.';
 $_['help_expiration']         = 'Mínimo 1 minuto.';
 

@@ -10,7 +10,7 @@ namespace Pagou\OpenCart;
 class Client {
 	const SANDBOX = 'https://api.pagou.cloud';
 	const PRODUCTION = 'https://api.pagou.com.br';
-	const VERSION = '1.1.0';
+	const VERSION = '1.1.1';
 
 	private $apiKey;
 	private $baseUrl;

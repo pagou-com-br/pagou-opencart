@@ -109,8 +109,8 @@ ok($pl[6]['installment'] === 184.54 && abs($pl[6]['total'] - 1107.24) < 0.001 &&
 ok(abs($pl[4]['total'] - round($pl[4]['installment'] * 4, 2)) < 0.001, 'Price: total = parcela x quantidade');
 $pl = Order::installmentPlan(651, array('max' => 3, 'free' => 1, 'mode' => 'price', 'rate' => '1.99'));
 ok($pl[3]['installment'] === 225.69 && abs($pl[3]['total'] - 677.07) < 0.001, 'Price 1,99% 3x');
-$pl = Order::installmentPlan(1000, array('max' => 12, 'free' => 1, 'mode' => 'price', 'rate' => '3.65'));
-ok($pl[1]['total'] === 1000.0 && $pl[2]['installment'] === 527.54 && $pl[6]['installment'] === 188.59 && abs($pl[12]['total'] - 1252.8) < 0.001, 'Price 3,65% (sugestão Pagou): 2x 527,54, 6x 188,59, 12x total 1.252,80');
+$pl = Order::installmentPlan(1000, array('max' => 12, 'free' => 1, 'mode' => 'price', 'rate' => '3.49'));
+ok($pl[1]['total'] === 1000.0 && $pl[2]['installment'] === 526.32 && $pl[6]['installment'] === 187.61 && abs($pl[12]['total'] - 1241.04) < 0.001, 'Price 3,49% (sugestão Pagou): 2x 526,32, 6x 187,61, 12x total 1.241,04');
 $pl = Order::installmentPlan(1000, array('max' => 12, 'free' => 2, 'mode' => 'price', 'rate' => 0));
 ok($pl[12]['total'] === 1000.0, 'Price com taxa zero: sem juros');
 $pl = Order::installmentPlan(1000, array('max' => 12, 'free' => 1, 'mode' => 'price', 'rate' => 500));

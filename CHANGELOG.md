@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.1.1 - 2026-10-29
+
+- Juros ao mês sugerido no admin passa a ser 3,49% (antes 3,65%).
+
 ## 1.1.0 - 2026-10-29
 
-- Cartão: juros do parcelamento repassados ao comprador. Novos campos "Parcelas sem juros até", "Juros acima disso" (juros ao mês pela tabela Price ou acréscimo fixo por parcela), "Juros ao mês (%)" (sugestão da Pagou: 3,65) e "Acréscimo por parcela (%)".
+- Cartão: juros do parcelamento repassados ao comprador. Novos campos "Parcelas sem juros até", "Juros acima disso" (juros ao mês pela tabela Price ou acréscimo fixo por parcela), "Juros ao mês (%)" e "Acréscimo por parcela (%)".
 - Checkout mostra parcela e total de cada opção com juros; o valor é recalculado no servidor.
 - Juros gravados no pedido como a linha "Juros do parcelamento (Nx)" antes do Total: pedido, e-mails, fatura e conferência batem com o valor cobrado. A linha é removida em recusa, erro ou troca para Pix/boleto.
 - Sem configuração nova, o comportamento é o da 1.0.0 (todas as parcelas sem juros).

@@ -55,7 +55,13 @@ $_['entry_due_days']          = 'Due date (days after the order)';
 $_['entry_grace_period']      = 'Grace period after due date (days, 1 to 30)';
 $_['entry_fine']              = 'Late fee (%)';
 $_['entry_interest']          = 'Monthly interest (%)';
-$_['entry_max_installments']  = 'Max interest-free installments';
+$_['entry_max_installments']  = 'Max installments';
+$_['entry_free_installments'] = 'Interest-free up to';
+$_['entry_interest_mode']     = 'Interest above that';
+$_['entry_interest_rate']     = 'Monthly interest (%)';
+$_['entry_interest_table']    = 'Surcharge per installment count (%)';
+$_['text_mode_price']         = 'Monthly interest (Price table)';
+$_['text_mode_table']         = 'Fixed surcharge per installment count';
 $_['entry_min_installment']   = 'Minimum installment amount (R$)';
 
 $_['help_restrict_ips']       = 'One per line.';
@@ -67,7 +73,12 @@ $_['help_title']              = 'Empty = default title.';
 $_['help_total']              = 'Minimum order total to show this method.';
 $_['help_grace_period']       = 'Days the boleto can still be paid after the due date.';
 $_['help_interest']           = 'Monthly percentage, charged pro rata per day late. 0 disables.';
-$_['help_min_installment']    = 'Installments below this amount are not offered.';
+$_['help_min_installment']    = 'Installments below this amount (interest included) are not offered.';
+$_['help_max_installments']   = '1 to 12. The card brand may also limit it.';
+$_['help_free_installments']  = 'Up to this count the store absorbs the fee. Above it, the buyer pays interest. Empty = all interest-free.';
+$_['help_interest_mode']      = 'The Pagou API only receives the total and the installment count: the store adds the interest to the order.';
+$_['help_interest_rate']      = 'Used by Monthly interest. Pagou suggests 3.65. 0 = no interest.';
+$_['help_interest_table']     = 'Used by Fixed surcharge. One per line or separated by semicolons: 4=6.5; 5=7.9. Counts above the interest-free range with no rate here are not offered.';
 $_['help_expiration']         = 'Minimum 1 minute.';
 
 $_['button_test']             = 'Test connection';

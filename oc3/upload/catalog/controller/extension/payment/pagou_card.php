@@ -13,8 +13,9 @@ class ControllerExtensionPaymentPagouCard extends Controller {
 		$this->load->model('extension/payment/pagou');
 		$this->load->model('checkout/order');
 
+		$pagou = $this->model_extension_payment_pagou;
 		$order = isset($this->session->data['order_id']) ? $this->model_checkout_order->getOrder($this->session->data['order_id']) : array();
-		$total = $order ? $this->model_extension_payment_pagou->toBrl($order['total']) : 0;
+		$total = $order ? $pagou->orderForSdk($pagou->withoutInterest($order))['total'] : 0;
 
 		$data['need_document'] = $order ? $this->model_extension_payment_pagou->needsDocument($order) : true;
 		$data['sandbox'] = $this->model_extension_payment_pagou->environment() === 'sandbox';
@@ -23,10 +24,12 @@ class ControllerExtensionPaymentPagouCard extends Controller {
 		$data['confirm_url'] = 'index.php?route=extension/payment/pagou_card/confirm';
 
 		$data['installments'] = array();
-		foreach ($this->installmentOptions($total) as $n) {
+		foreach ($pagou->cardPlan($total) as $n => $p) {
 			$data['installments'][] = array(
 				'value' => $n,
-				'text' => sprintf($this->language->get('text_installments'), $n, $this->currency->format($total / $n, 'BRL', 1)),
+				'text' => $p['interest'] > 0
+					? sprintf($this->language->get('text_installments_interest'), $n, $this->currency->format($p['installment'], 'BRL', 1), $this->currency->format($p['total'], 'BRL', 1))
+					: sprintf($this->language->get('text_installments'), $n, $this->currency->format($p['installment'], 'BRL', 1)),
 			);
 		}
 
@@ -35,10 +38,6 @@ class ControllerExtensionPaymentPagouCard extends Controller {
 			$data[$k] = $this->language->get($k);
 		}
 		return $this->load->view('extension/payment/pagou_card', $data);
-	}
-
-	private function installmentOptions($total) {
-		return Order::installmentOptions($total, (int)$this->config->get('payment_pagou_card_max_installments') ?: 1, (float)$this->config->get('payment_pagou_card_min_installment'));
 	}
 
 	public function confirm() {
@@ -59,8 +58,15 @@ class ControllerExtensionPaymentPagouCard extends Controller {
 		if (!$error && !Order::validCard($card)) {
 			$error = $this->language->get('error_card_token');
 		}
-		if (!$error && !in_array($installments, $this->installmentOptions($pagou->toBrl($order['total'])), true)) {
-			$error = $this->language->get('error_installments');
+		// Parcelas e juros sempre recalculados aqui, sobre o pedido sem juros: o navegador só escolhe a quantidade
+		$plan = array();
+		$sdkOrder = null;
+		if (!$error) {
+			$sdkOrder = $pagou->orderForSdk($pagou->withoutInterest($order));
+			$plan = $pagou->cardPlan($sdkOrder['total']);
+			if (!isset($plan[$installments])) {
+				$error = $this->language->get('error_installments');
+			}
 		}
 		$payer = null;
 		if (!$error) {
@@ -78,11 +84,20 @@ class ControllerExtensionPaymentPagouCard extends Controller {
 
 		if (!$error && !$json) {
 			try {
-				$t = $pagou->engine()->createCard($pagou->orderForSdk($order), $payer, $card, $installments, $pagou->clientIp());
+				// Juros entram no pedido ANTES da cobrança: total do pedido = valor cobrado (e-mails e conferência)
+				$pagou->setInterest($order, $plan[$installments]['interest'], $installments);
+				$base = $sdkOrder['total'];
+				$sdkOrder['total'] = $plan[$installments]['total'];
+				$t = $pagou->engine()->createCard($sdkOrder, $payer, $card, $installments, $pagou->clientIp());
 				if ($t['status'] === Status::FAILED || $t['status'] === Status::CANCELED) {
+					$pagou->setInterest($order, 0, 0);
 					$reason = !empty($t['data']['failure_reason']) ? ': ' . $t['data']['failure_reason'] : '';
 					$error = sprintf($this->language->get('error_card_declined'), $reason);
 				} else {
+					// Tentativa anterior recuperada (outra quantidade de parcelas): o pedido segue a cobrança real
+					if ((int)$t['installments'] !== $installments || abs((float)$t['amount'] - $sdkOrder['total']) > 0.005) {
+						$pagou->setInterest($order, max(0, (float)$t['amount'] - $base), (int)$t['installments']);
+					}
 					// Pago/autorizado/em processamento: o Engine já aplicou o status no pedido (uma vez só).
 					if ($t['status'] === Status::UNKNOWN) {
 						$pagou->markPending($order['order_id'], sprintf($this->language->get('text_history_card'), $installments));
@@ -98,6 +113,7 @@ class ControllerExtensionPaymentPagouCard extends Controller {
 					$pagou->markPending($order['order_id'], 'Cartão: resultado incerto na Pagou (' . $e->getMessage() . '), a confirmar.');
 					$json['redirect'] = $pagou->payUrl($order['order_id']);
 				} else {
+					$pagou->setInterest($order, 0, 0);
 					$error = sprintf($this->language->get('error_card_declined'), ': ' . $e->getMessage());
 				}
 			} catch (\Throwable $e) {
@@ -108,6 +124,7 @@ class ControllerExtensionPaymentPagouCard extends Controller {
 				if ($last && $last['status'] !== Status::FAILED) {
 					$json['redirect'] = $pagou->payUrl($order['order_id']);
 				} else {
+					$pagou->setInterest($order, 0, 0);
 					$error = $this->language->get('error_card_token');
 				}
 			}

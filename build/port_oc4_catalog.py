@@ -30,6 +30,8 @@ REPLACEMENTS = [
      "$this->url->link('account/order.info', 'language=' . " + LANG + " . '&order_id=' . $orderId . (isset($this->session->data['customer_token']) ? '&customer_token=' . $this->session->data['customer_token'] : ''))"),
     ("$order['order_id'],", "(int)$order['order_id'],"),
     ("$pagou->payUrl($order['order_id'])", "$pagou->payUrl((int)$order['order_id'])"),
+    # Currency::format do OC 4 tem $value float
+    ("'BRL', 1)", "'BRL', 1.0)"),
 ]
 
 

@@ -44,7 +44,15 @@
           {% for f in method_fields %}
           <div class="form-group">
             <label class="col-sm-2 control-label">{% if f.help %}<span data-toggle="tooltip" title="{{ f.help }}">{{ f.label }}</span>{% else %}{{ f.label }}{% endif %}</label>
-            <div class="col-sm-10"><input type="number" step="any" min="0" name="{{ f.key }}" value="{{ v[f.key]|e }}" class="form-control" /></div>
+            <div class="col-sm-10">
+              {% if f.type == 'select' %}
+              <select name="{{ f.key }}" class="form-control">{% for o in f.options %}<option value="{{ o.value|e }}" {{ o.value == v[f.key] ? 'selected' }}>{{ o.text|e }}</option>{% endfor %}</select>
+              {% elseif f.type == 'text' %}
+              <input type="text" name="{{ f.key }}" value="{{ v[f.key]|e }}" class="form-control" />
+              {% else %}
+              <input type="number" step="any" min="0" name="{{ f.key }}" value="{{ v[f.key]|e }}" class="form-control" />
+              {% endif %}
+            </div>
           </div>
           {% endfor %}
           <div class="form-group">

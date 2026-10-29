@@ -121,6 +121,61 @@ class ModelExtensionPaymentPagou extends Model {
 		return $orderInfo;
 	}
 
+	// ---- Parcelamento do cartão -----------------------------------------
+
+	/** Plano de parcelas do cartão para um valor em BRL sem juros (ver Order::installmentPlan). */
+	public function cardPlan($totalBrl) {
+		$free = $this->config->get('payment_pagou_card_free_installments');
+		return Order::installmentPlan($totalBrl, array(
+			'max' => (int)$this->config->get('payment_pagou_card_max_installments') ?: 1,
+			'min_installment' => (float)str_replace(',', '.', (string)$this->config->get('payment_pagou_card_min_installment')),
+			'free' => $free === null || $free === '' ? null : (int)$free,
+			'mode' => (string)$this->config->get('payment_pagou_card_interest_mode'),
+			'rate' => (float)str_replace(',', '.', (string)$this->config->get('payment_pagou_card_interest_rate')),
+			'table' => Order::parseRateTable((string)$this->config->get('payment_pagou_card_interest_table')),
+		));
+	}
+
+	/** Juros do cartão lançados no pedido (linha "pagou_interest", na moeda padrão da loja). */
+	public function interestOf($orderId) {
+		$row = $this->db->query("SELECT SUM(`value`) AS total FROM `" . DB_PREFIX . "order_total` WHERE `order_id` = '" . (int)$orderId . "' AND `code` = 'pagou_interest'")->row;
+		return $row && $row['total'] !== null ? (float)$row['total'] : 0.0;
+	}
+
+	/** Pedido sem os juros do cartão (o total sobre o qual o parcelamento é calculado). */
+	public function withoutInterest($orderInfo) {
+		$orderInfo['total'] = (float)$orderInfo['total'] - $this->interestOf($orderInfo['order_id']);
+		return $orderInfo;
+	}
+
+	/**
+	 * Lança, troca ou remove (valor 0) a linha de juros do cartão no pedido e ajusta o total, para o
+	 * pedido, os e-mails e a conferência de valor baterem com o que foi cobrado na Pagou.
+	 * $interestBrl em reais; convertido para a moeda padrão pela mesma taxa de orderForSdk.
+	 */
+	public function setInterest($orderInfo, $interestBrl, $installments) {
+		$orderId = (int)$orderInfo['order_id'];
+		if (isset($orderInfo['currency_code']) && $orderInfo['currency_code'] === 'BRL' && (float)$orderInfo['currency_value'] > 0) {
+			$rate = (float)$orderInfo['currency_value'];
+		} else {
+			$rate = (float)$this->currency->getValue('BRL') ?: 1.0;
+		}
+		$interest = $interestBrl > 0.004 ? round((float)$interestBrl / $rate, 4) : 0.0;
+		$current = $this->interestOf($orderId);
+		$this->db->query("DELETE FROM `" . DB_PREFIX . "order_total` WHERE `order_id` = '" . $orderId . "' AND `code` = 'pagou_interest'");
+		if ($interest > 0) {
+			$this->load->language('extension/payment/pagou');
+			$total = $this->db->query("SELECT `sort_order` FROM `" . DB_PREFIX . "order_total` WHERE `order_id` = '" . $orderId . "' AND `code` = 'total' LIMIT 1")->row;
+			$sort = $total ? max(0, (int)$total['sort_order'] - 1) : 0;
+			$this->db->query("INSERT INTO `" . DB_PREFIX . "order_total` SET `order_id` = '" . $orderId . "', `code` = 'pagou_interest', `title` = '" . $this->db->escape(sprintf($this->language->get('text_interest_line'), (int)$installments)) . "', `value` = '" . (float)$interest . "', `sort_order` = '" . (int)$sort . "'");
+		}
+		$delta = $interest - $current;
+		if (abs($delta) > 0.00001) {
+			$this->db->query("UPDATE `" . DB_PREFIX . "order_total` SET `value` = `value` + '" . (float)$delta . "' WHERE `order_id` = '" . $orderId . "' AND `code` = 'total'");
+			$this->db->query("UPDATE `" . DB_PREFIX . "order` SET `total` = `total` + '" . (float)$delta . "', `date_modified` = NOW() WHERE `order_id` = '" . $orderId . "'");
+		}
+	}
+
 	public function payer($orderInfo, $documentOverride = '') {
 		return Order::payer($orderInfo, array(
 			'document_field' => (string)$this->config->get('payment_pagou_document_field'),
@@ -296,6 +351,11 @@ class ModelExtensionPaymentPagou extends Model {
 		list($payer, $error) = $this->validPayer($order, $method, $document);
 		if ($error) {
 			return array('error' => $error);
+		}
+		// Juros de uma tentativa de cartão anterior não valem para Pix/boleto
+		if ($this->interestOf($order['order_id']) > 0) {
+			$this->setInterest($order, 0, 0);
+			$order = $this->model_checkout_order->getOrder($order['order_id']);
 		}
 		try {
 			$sdkOrder = $this->orderForSdk($order);

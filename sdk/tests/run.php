@@ -95,6 +95,48 @@ ok(!Order::validCard(array('expires_at' => '2030-13') + $card), 'mês inválido'
 $cb = Order::cardBody($payer, $card, 150.4, 3, 'Desc', '203.0.113.10', '2026-10-14');
 ok($cb['value'] === 15040 && $cb['installments'] === 3 && $cb['antifraud']['ip'] === '203.0.113.10' && $cb['customer']['address']['complement'] === 'Sala 2', 'corpo cartão');
 ok(Order::installmentOptions(100, 12, 30) === array(1, 2, 3), 'parcelas com mínimo');
+ok(Order::installmentOptions(100, 0, 0) === array(1), 'máximo inválido vira 1x');
+ok(Order::installmentOptions(60, 12, 0) === range(1, 12), 'sem mínimo oferece até o máximo');
+
+// ---- Juros do parcelamento ------------------------------------------------
+$pl = Order::installmentPlan(1000, array('max' => 12));
+ok(count($pl) === 12 && $pl[12]['total'] === 1000.0 && $pl[12]['interest'] === 0.0, 'sem configuração de juros: tudo sem juros (compatível com 1.0)');
+$price = array('max' => 12, 'free' => 3, 'mode' => 'price', 'rate' => 2.99);
+$pl = Order::installmentPlan(1000, $price);
+ok($pl[1]['total'] === 1000.0 && $pl[3]['total'] === 1000.0 && $pl[3]['interest'] === 0.0, 'Price: até 3x sem juros');
+ok($pl[12]['installment'] === 100.4 && $pl[12]['total'] === 1204.8, 'Price 2,99% 12x: parcela 100,40, total 1.204,80');
+ok($pl[6]['installment'] === 184.54 && abs($pl[6]['total'] - 1107.24) < 0.001 && abs($pl[6]['interest'] - 107.24) < 0.001, 'Price 2,99% 6x');
+ok(abs($pl[4]['total'] - round($pl[4]['installment'] * 4, 2)) < 0.001, 'Price: total = parcela x quantidade');
+$pl = Order::installmentPlan(651, array('max' => 3, 'free' => 1, 'mode' => 'price', 'rate' => '1.99'));
+ok($pl[3]['installment'] === 225.69 && abs($pl[3]['total'] - 677.07) < 0.001, 'Price 1,99% 3x');
+$pl = Order::installmentPlan(1000, array('max' => 12, 'free' => 1, 'mode' => 'price', 'rate' => '3.65'));
+ok($pl[1]['total'] === 1000.0 && $pl[2]['installment'] === 527.54 && $pl[6]['installment'] === 188.59 && abs($pl[12]['total'] - 1252.8) < 0.001, 'Price 3,65% (sugestão Pagou): 2x 527,54, 6x 188,59, 12x total 1.252,80');
+$pl = Order::installmentPlan(1000, array('max' => 12, 'free' => 2, 'mode' => 'price', 'rate' => 0));
+ok($pl[12]['total'] === 1000.0, 'Price com taxa zero: sem juros');
+$pl = Order::installmentPlan(1000, array('max' => 12, 'free' => 1, 'mode' => 'price', 'rate' => 500));
+ok(isset($pl[2]) && $pl[2]['total'] > 1000 && $pl[2]['total'] < 4000, 'taxa absurda limitada a 100% a.m.');
+$table = Order::parseRateTable("2=3,5; 3 = 4.9%\n4:6\n13=9; 1=2; x=1; 5=150; 6=0");
+ok($table === array(2 => 3.5, 3 => 4.9, 4 => 6.0, 6 => 0.0), 'tabela: vírgula, %, ":" e linhas; descarta 1x, 13x, >100% e lixo');
+ok(Order::formatRateTable($table) === '2=3.5; 3=4.9; 4=6; 6=0', 'tabela normalizada');
+ok(Order::parseRateTable(Order::formatRateTable($table)) === $table, 'tabela ida e volta');
+$pl = Order::installmentPlan(1000, array('max' => 6, 'free' => 1, 'mode' => 'table', 'table' => $table));
+ok(array_keys($pl) === array(1, 2, 3, 4, 6), 'tabela: quantidade sem taxa não é oferecida');
+ok($pl[2]['total'] === 1035.0 && $pl[3]['total'] === 1049.0 && $pl[6]['total'] === 1000.0, 'tabela: acréscimo sobre o total');
+ok($pl[3]['installment'] === 349.67, 'tabela: parcela arredondada ao centavo');
+$pl = Order::installmentPlan(333.33, array('max' => 2, 'free' => 1, 'mode' => 'table', 'table' => array(2 => 4.75)));
+ok($pl[2]['total'] === 349.16 && abs($pl[2]['interest'] - 15.83) < 0.001, 'tabela: arredondamento do total');
+$pl = Order::installmentPlan(100, array('max' => 12, 'free' => 1, 'mode' => 'price', 'rate' => 5, 'min_installment' => 50));
+ok(array_keys($pl) === array(1, 2) && $pl[2]['installment'] === 53.78, 'mínimo da parcela considera a parcela com juros');
+$pl = Order::installmentPlan(30, array('max' => 12, 'free' => 12, 'min_installment' => 50));
+ok(array_keys($pl) === array(1), '1x sempre oferecida, mesmo abaixo do mínimo');
+$pl = Order::installmentPlan(1000, array('max' => 6, 'free' => '', 'mode' => 'price', 'rate' => 3));
+ok($pl[6]['interest'] === 0.0, 'sem-juros vazio = todas sem juros');
+$pl = Order::installmentPlan(1000, array('max' => 6, 'free' => 20, 'mode' => 'price', 'rate' => 3));
+ok($pl[6]['interest'] === 0.0, 'sem-juros acima do máximo = todas sem juros');
+$pl = Order::installmentPlan(0.1, array('max' => 3, 'free' => 1, 'mode' => 'price', 'rate' => 2));
+ok(isset($pl[1]) && $pl[1]['total'] === 0.1, 'valor pequeno não quebra');
+$cb = Order::cardBody($payer, $card, Order::installmentPlan(1000, $price)[12]['total'], 12, 'Desc', '203.0.113.10', '2026-10-14');
+ok($cb['value'] === 120480 && $cb['installments'] === 12, 'cobrança vai com o total com juros, em centavos');
 ok(Order::clientIp(array('REMOTE_ADDR' => '10.0.0.1', 'HTTP_CF_CONNECTING_IP' => '198.51.100.7'), 'CF-Connecting-IP') === '198.51.100.7', 'IP via Cloudflare');
 ok(Order::clientIp(array('REMOTE_ADDR' => '10.0.0.1', 'HTTP_CF_CONNECTING_IP' => '198.51.100.7'), '') === '10.0.0.1', 'IP sem confiar no proxy');
 

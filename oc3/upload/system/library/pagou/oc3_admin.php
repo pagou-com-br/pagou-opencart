@@ -18,8 +18,13 @@ abstract class PagouOc3AdminController extends Controller {
 	protected $method;
 	private $error = array();
 
-	/** Campos específicos do meio: [chave sem prefixo => [tipo, padrão]]. */
+	/** Campos específicos do meio: [chave sem prefixo => [tipo (number|text|select), padrão, opções do select]]. */
 	abstract protected function methodFields();
+
+	/** Ajuste do valor de um campo do meio antes de gravar. */
+	protected function normalizeField($key, $value) {
+		return $value;
+	}
 
 	protected function sharedKeys() {
 		return array(
@@ -95,7 +100,11 @@ abstract class PagouOc3AdminController extends Controller {
 		}
 		$data['method_fields'] = array();
 		foreach ($this->methodFields() as $k => $def) {
-			$data['method_fields'][] = array('key' => 'payment_' . $this->code . '_' . $k, 'type' => $def[0], 'label' => $this->language->get('entry_' . $k), 'help' => $this->language->get('help_' . $k) !== 'help_' . $k ? $this->language->get('help_' . $k) : '');
+			$options = array();
+			foreach (isset($def[2]) ? $def[2] : array() as $value => $text) {
+				$options[] = array('value' => $value, 'text' => $this->language->get($text));
+			}
+			$data['method_fields'][] = array('key' => 'payment_' . $this->code . '_' . $k, 'type' => $def[0], 'options' => $options, 'label' => $this->language->get('entry_' . $k), 'help' => $this->language->get('help_' . $k) !== 'help_' . $k ? $this->language->get('help_' . $k) : '');
 		}
 		$data['prefix'] = 'payment_' . $this->code . '_';
 
@@ -140,7 +149,7 @@ abstract class PagouOc3AdminController extends Controller {
 		$own = array();
 		foreach (array_merge($this->commonMethodFields(), $this->methodFields()) as $k => $def) {
 			$key = 'payment_' . $this->code . '_' . $k;
-			$own[$key] = isset($post[$key]) ? trim((string)$post[$key]) : $def[1];
+			$own[$key] = $this->normalizeField($k, isset($post[$key]) ? trim((string)$post[$key]) : (string)$def[1]);
 		}
 		$this->model_setting_setting->editSetting('payment_' . $this->code, $own);
 	}

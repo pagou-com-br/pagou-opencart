@@ -55,7 +55,13 @@ $_['entry_due_days']          = 'Vencimento (dias após o pedido)';
 $_['entry_grace_period']      = 'Tolerância após vencimento (dias, 1 a 30)';
 $_['entry_fine']              = 'Multa (%)';
 $_['entry_interest']          = 'Juros ao mês (%)';
-$_['entry_max_installments']  = 'Máximo de parcelas sem juros';
+$_['entry_max_installments']  = 'Máximo de parcelas';
+$_['entry_free_installments'] = 'Parcelas sem juros até';
+$_['entry_interest_mode']     = 'Juros acima disso';
+$_['entry_interest_rate']     = 'Juros ao mês (%)';
+$_['entry_interest_table']    = 'Acréscimo por parcela (%)';
+$_['text_mode_price']         = 'Juros ao mês (tabela Price)';
+$_['text_mode_table']         = 'Acréscimo fixo por parcela (tabela)';
 $_['entry_min_installment']   = 'Valor mínimo da parcela (R$)';
 
 $_['help_restrict_ips']       = 'Um por linha. Seu IP atual aparece no rodapé do admin do OpenCart ou em qualquer site "qual é meu IP".';
@@ -67,7 +73,12 @@ $_['help_title']              = 'Vazio = título padrão.';
 $_['help_total']              = 'Valor mínimo do pedido para exibir este meio.';
 $_['help_grace_period']       = 'Dias em que o boleto ainda pode ser pago após o vencimento.';
 $_['help_interest']           = 'Percentual mensal, cobrado proporcionalmente por dia de atraso. 0 desliga.';
-$_['help_min_installment']    = 'Parcelas abaixo desse valor não são oferecidas.';
+$_['help_min_installment']    = 'Parcelas abaixo desse valor (já com juros) não são oferecidas.';
+$_['help_max_installments']   = 'De 1 a 12. A bandeira do cartão também pode limitar.';
+$_['help_free_installments']  = 'Até esta quantidade a loja absorve a tarifa. Acima, o comprador paga juros. Vazio = todas sem juros.';
+$_['help_interest_mode']      = 'A API da Pagou recebe só o total e as parcelas: os juros são somados ao pedido pela loja.';
+$_['help_interest_rate']      = 'Usado em Juros ao mês. Sugestão da Pagou: 3,65. 0 = sem juros.';
+$_['help_interest_table']     = 'Usado em Acréscimo fixo. Uma parcela por linha ou separadas por ponto e vírgula: 4=6,5; 5=7,9. Quantidade acima da faixa sem juros e sem taxa aqui não é oferecida.';
 $_['help_expiration']         = 'Mínimo 1 minuto.';
 
 $_['button_test']             = 'Testar conexão';

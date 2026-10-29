@@ -14,7 +14,13 @@ abstract class AdminBase extends \Opencart\System\Engine\Controller {
 	protected string $code = '';
 	protected string $method = '';
 
+	/** Campos específicos do meio: [chave sem prefixo => [tipo (number|text|select), padrão, opções do select]]. */
 	abstract protected function methodFields(): array;
+
+	/** Ajuste do valor de um campo do meio antes de gravar. */
+	protected function normalizeField(string $key, string $value): string {
+		return $value;
+	}
 
 	protected function sharedKeys(): array {
 		return array(
@@ -76,7 +82,11 @@ abstract class AdminBase extends \Opencart\System\Engine\Controller {
 		$data['method_fields'] = array();
 		foreach ($this->methodFields() as $k => $def) {
 			$help = $this->language->get('help_' . $k);
-			$data['method_fields'][] = array('key' => 'payment_' . $this->code . '_' . $k, 'type' => $def[0], 'label' => $this->language->get('entry_' . $k), 'help' => $help !== 'help_' . $k ? $help : '');
+			$options = array();
+			foreach ($def[2] ?? array() as $value => $text) {
+				$options[] = array('value' => $value, 'text' => $this->language->get($text));
+			}
+			$data['method_fields'][] = array('key' => 'payment_' . $this->code . '_' . $k, 'type' => $def[0], 'options' => $options, 'label' => $this->language->get('entry_' . $k), 'help' => $help !== 'help_' . $k ? $help : '');
 		}
 		$data['prefix'] = 'payment_' . $this->code . '_';
 
@@ -133,7 +143,7 @@ abstract class AdminBase extends \Opencart\System\Engine\Controller {
 			$own = array();
 			foreach (array_merge($this->commonMethodFields(), $this->methodFields()) as $k => $def) {
 				$key = 'payment_' . $this->code . '_' . $k;
-				$own[$key] = isset($post[$key]) ? trim((string)$post[$key]) : $def[1];
+				$own[$key] = $this->normalizeField($k, isset($post[$key]) ? trim((string)$post[$key]) : (string)$def[1]);
 			}
 			$this->model_setting_setting->editSetting('payment_' . $this->code, $own);
 			$json['success'] = $this->language->get('text_success');

@@ -8,22 +8,22 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/vers%C3%A3o-1.0.0-0071df?style=flat-square" alt="Versão 1.0.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/vers%C3%A3o-1.1.0-0071df?style=flat-square" alt="Versão 1.1.0"></a>
   <a href="#requisitos"><img src="https://img.shields.io/badge/OpenCart-3.0.x%20%7C%204.x-697ab1?style=flat-square" alt="OpenCart 3.0.x e 4.x"></a>
   <a href="#requisitos"><img src="https://img.shields.io/badge/PHP-7.4%2B-697ab1?style=flat-square&amp;logo=php&amp;logoColor=white" alt="PHP 7.4 ou superior"></a>
   <img src="https://img.shields.io/badge/idioma-Portugu%C3%AAs%20BR-15836b?style=flat-square" alt="Interface em português do Brasil">
-  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/status-Pr%C3%A9--release-b77919?style=flat-square" alt="Pré-release"></a>
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/status-Pr%C3%A9--release-b77919?style=flat-square" alt="Pré-release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-526475?style=flat-square" alt="Licença MIT"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.0.0/pagou-opencart3-1.0.0.ocmod.zip"><strong>Baixar para OpenCart 3.0.x (.zip)</strong></a>
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.1.0/pagou-opencart3-1.1.0.ocmod.zip"><strong>Baixar para OpenCart 3.0.x (.zip)</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.0.0/pagou.ocmod.zip"><strong>Baixar para OpenCart 4.x (.zip)</strong></a>
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.1.0/pagou.ocmod.zip"><strong>Baixar para OpenCart 4.x (.zip)</strong></a>
   <br>
-  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/tag/v1.0.0">Release notes</a>
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/tag/v1.1.0">Release notes</a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.0.0/SHA256SUMS">Checksum SHA-256</a>
+  <a href="https://github.com/pagou-com-br/pagou-opencart/releases/download/v1.1.0/SHA256SUMS">Checksum SHA-256</a>
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@
   <a href="#licenca">Licença</a>
 </p>
 
-> **Pré-release `1.0.0`.** Em validação na primeira loja piloto. Teste no Sandbox, com o
+> **Pré-release `1.1.0`.** Pix e Boleto em produção na primeira loja piloto; cartão em validação. Teste no Sandbox, com o
 > **Modo de teste** ligado, antes de abrir para os clientes. No OpenCart 4, o arquivo
 > **precisa** se chamar `pagou.ocmod.zip`: não renomeie.
 
@@ -53,7 +53,7 @@ Receba por **Pix**, **Boleto** e **Cartão de crédito** na sua loja OpenCart us
 
 - **Pix**: gera o QR Code e o Pix Copia e Cola numa página de pagamento própria, com contagem regressiva e confirmação automática.
 - **Boleto**: emite o boleto com vencimento, multa e juros configuráveis; mostra a linha digitável, os links HTML/PDF e o Pix embutido no boleto, quando a conta oferece.
-- **Cartão de crédito**: o cartão é tokenizado no navegador com a biblioteca oficial (número e CVV nunca passam pelo servidor da loja), com parcelamento sem juros e valor mínimo de parcela.
+- **Cartão de crédito**: o cartão é tokenizado no navegador com a biblioteca oficial (número e CVV nunca passam pelo servidor da loja), com parcelamento até 12x e valor mínimo de parcela. A loja escolhe até quantas parcelas absorve a tarifa (sem juros) e, acima disso, repassa juros ao comprador: [juros ao mês (tabela Price) ou acréscimo fixo por parcela](#juros-do-parcelamento).
 - **Confirmação por webhook** com assinatura HMAC validada, deduplicação de eventos e proteção contra regressão de status (um aviso atrasado nunca "despaga" um pedido).
 - **Conciliação por cron**: consulta na API as cobranças em aberto, para o caso de um webhook não chegar.
 - **Modo de teste com visibilidade restrita**: os meios da Pagou só aparecem para IPs ou e-mails liberados. Dá para testar no Sandbox dentro da loja real sem nenhum cliente ver.
@@ -101,12 +101,32 @@ Receba por **Pix**, **Boleto** e **Cartão de crédito** na sua loja OpenCart us
 
 A URL de notificação (webhook) é enviada automaticamente em cada cobrança: não precisa cadastrar nada no painel da Pagou.
 
+<a id="juros-do-parcelamento"></a>
+
+### Juros do parcelamento (cartão)
+
+A API da Pagou recebe só o **valor total** e o **número de parcelas**; a tarifa do cartão é cobrada da loja conforme o plano. Para repassar juros ao comprador, configure em **Pagou - Cartão de crédito**:
+
+| Campo | O que faz |
+| --- | --- |
+| **Máximo de parcelas** | De 1 a 12 (a bandeira também pode limitar). |
+| **Parcelas sem juros até** | Até essa quantidade a loja absorve a tarifa. Vazio = todas sem juros (comportamento da 1.0). `1` = só à vista sem juros. |
+| **Juros acima disso** | **Juros ao mês (tabela Price)**: parcela calculada com a taxa mensal, arredondada ao centavo, total = parcela × quantidade. **Acréscimo fixo por parcela (tabela)**: percentual sobre o total para cada quantidade, ex. `4=6,5; 5=7,9`; quantidade acima da faixa sem juros e fora da tabela não é oferecida. |
+| **Juros ao mês (%)** | Usado na tabela Price. Sugestão da Pagou: **3,65**. |
+| **Valor mínimo da parcela** | Considera a parcela já com juros. 1x é sempre oferecida. |
+
+Exemplo com 3,65% ao mês e só o à vista sem juros, num pedido de R$ 1.000,00: 2x de R$ 527,54 (total R$ 1.055,08), 6x de R$ 188,59 (R$ 1.131,54), 12x de R$ 104,40 (R$ 1.252,80).
+
+O checkout mostra cada opção com a parcela e o total. Ao enviar o cartão, os juros entram no pedido como a linha **"Juros do parcelamento (Nx)"**, antes do Total, e o pedido passa a valer exatamente o que foi cobrado na Pagou (e-mails, fatura, admin e conferência de valor). O valor é sempre recalculado no servidor: o navegador só escolhe a quantidade de parcelas. Se o cartão for recusado, ou se o comprador trocar para Pix ou boleto, a linha é removida e o total volta ao original.
+
+Limitação: editar o pedido pelo admin do OpenCart recalcula os totais pelo carrinho e remove a linha de juros. Para um pedido de cartão já cobrado, não edite produtos ou valores pelo admin.
+
 <a id="atualizacao"></a>
 
 ## Atualização e desinstalação
 
 - **OpenCart 3:** envie o pacote novo pelo Instalador; os arquivos são substituídos e as configurações são mantidas.
-- **OpenCart 4:** o instalador recusa uma extensão cuja pasta já existe. Para atualizar, anote as configurações, desinstale os meios, remova a extensão no Instalador e envie o pacote novo.
+- **OpenCart 4:** o instalador recusa uma extensão cuja pasta já existe. Para atualizar, **nesta ordem**: anote a configuração de cada meio; em **Extensões → Pagamentos**, desinstale os três meios; em **Extensões → Instalador**, desinstale e depois exclua a extensão Pagou; envie o `pagou.ocmod.zip` novo, instale, e instale os meios de novo. A chave de API, o mapeamento de campos, os status e o histórico de cobranças são mantidos; a configuração própria de cada meio (situação, título, parcelas, juros, vencimento) volta ao padrão e os meios ficam **desabilitados** até você revisar e habilitar.
 - **Não desinstale os três meios com Pix ou boletos em aberto.** O webhook e o cron fazem parte da extensão; sem ela, pagamentos feitos depois não atualizam o pedido. As tabelas `pagou_transaction` e `pagou_event` nunca são apagadas, para preservar o histórico.
 
 ## Scripts de terceiros no checkout

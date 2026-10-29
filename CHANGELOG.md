@@ -1,6 +1,16 @@
 # Changelog
 
-## 1.0.0 - em desenvolvimento
+## 1.1.0 - 2026-10-29
+
+- Cartão: juros do parcelamento repassados ao comprador. Novos campos "Parcelas sem juros até", "Juros acima disso" (juros ao mês pela tabela Price ou acréscimo fixo por parcela), "Juros ao mês (%)" (sugestão da Pagou: 3,65) e "Acréscimo por parcela (%)".
+- Checkout mostra parcela e total de cada opção com juros; o valor é recalculado no servidor.
+- Juros gravados no pedido como a linha "Juros do parcelamento (Nx)" antes do Total: pedido, e-mails, fatura e conferência batem com o valor cobrado. A linha é removida em recusa, erro ou troca para Pix/boleto.
+- Sem configuração nova, o comportamento é o da 1.0.0 (todas as parcelas sem juros).
+- "Valor mínimo da parcela" passa a considerar a parcela com juros.
+- Admin: campos de seleção e texto nos meios; taxa e tabela de acréscimo gravadas normalizadas.
+- README: procedimento de atualização no OpenCart 4 detalhado.
+
+## 1.0.0 - 2026-10-19
 
 - Pix imediato com QR Code, Copia e Cola, contagem regressiva e confirmação automática.
 - Boleto com vencimento, tolerância, multa e juros; linha digitável, links HTML/PDF e Pix embutido.

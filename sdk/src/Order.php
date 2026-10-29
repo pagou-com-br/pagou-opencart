@@ -218,15 +218,89 @@ class Order {
 	 * @return int[] lista de quantidades de parcelas
 	 */
 	public static function installmentOptions($total, $max, $minInstallment) {
-		$max = max(1, min(12, (int)$max));
-		$min = max(0, (float)$minInstallment);
-		$out = array(1);
-		for ($n = 2; $n <= $max; $n++) {
-			if ($min <= 0 || ($total / $n) + 0.00001 >= $min) {
-				$out[] = $n;
+		return array_keys(self::installmentPlan($total, array('max' => $max, 'min_installment' => $minInstallment)));
+	}
+
+	/**
+	 * Plano de parcelamento do cartão: para cada quantidade oferecida, o total cobrado e a parcela.
+	 *
+	 * Até `free` parcelas (null = todas) não há juros. Acima disso o comprador paga juros:
+	 *  - mode "price": juros compostos de `rate`% ao mês (tabela Price), parcela arredondada ao centavo
+	 *    e total = parcela x quantidade;
+	 *  - mode "table": acréscimo de `table[n]`% sobre o valor; quantidade sem taxa na tabela não é oferecida.
+	 * 1x é sempre à vista, sem juros. Parcelas abaixo de `min_installment` (já com juros) não são oferecidas.
+	 * A API da Pagou recebe só o total e as parcelas: os juros ao comprador são regra da loja.
+	 *
+	 * @param float $total valor em BRL, sem juros
+	 * @param array $cfg max, min_installment, free, mode, rate, table
+	 * @return array<int, array{installments:int, total:float, installment:float, interest:float}> por quantidade
+	 */
+	public static function installmentPlan($total, array $cfg) {
+		$max = max(1, min(12, isset($cfg['max']) ? (int)$cfg['max'] : 1));
+		$min = isset($cfg['min_installment']) ? max(0, (float)$cfg['min_installment']) : 0;
+		$free = isset($cfg['free']) && $cfg['free'] !== '' ? max(1, (int)$cfg['free']) : $max;
+		$mode = isset($cfg['mode']) && $cfg['mode'] === 'table' ? 'table' : 'price';
+		$rate = isset($cfg['rate']) ? max(0, min(100, (float)$cfg['rate'])) : 0;
+		$table = isset($cfg['table']) && is_array($cfg['table']) ? $cfg['table'] : array();
+
+		$base = (int)round((float)$total * 100);
+		$plan = array();
+		for ($n = 1; $n <= $max; $n++) {
+			if ($n === 1 || $n <= $free) {
+				$cents = $base;
+			} elseif ($mode === 'price') {
+				if ($rate <= 0) {
+					$cents = $base;
+				} else {
+					$i = $rate / 100;
+					$cents = (int)round($base * $i / (1 - pow(1 + $i, -$n))) * $n;
+				}
+			} else {
+				if (!isset($table[$n])) {
+					continue;
+				}
+				$cents = (int)round($base * (1 + max(0, (float)$table[$n]) / 100));
+			}
+			if ($n > 1 && $min > 0 && $cents / $n + 0.001 < $min * 100) {
+				continue;
+			}
+			$plan[$n] = array(
+				'installments' => $n,
+				'total' => (float)($cents / 100),
+				'installment' => (float)(round($cents / $n) / 100),
+				'interest' => (float)(max(0, $cents - $base) / 100),
+			);
+		}
+		return $plan;
+	}
+
+	/**
+	 * Lê a tabela de acréscimo por parcela digitada no admin: "2=3,5; 3=4.9" ou uma por linha,
+	 * com "%" opcional. Ignora o que não for de 2 a 12 parcelas ou de 0 a 100%.
+	 * @return array<int, float> quantidade => acréscimo em %
+	 */
+	public static function parseRateTable($text) {
+		$out = array();
+		foreach (preg_split('/[;\r\n]+/', (string)$text) as $part) {
+			if (preg_match('/^\s*(\d{1,2})\s*[x:=]\s*(\d{1,3}(?:[.,]\d+)?)\s*%?\s*$/i', $part, $m)) {
+				$n = (int)$m[1];
+				$pct = (float)str_replace(',', '.', $m[2]);
+				if ($n >= 2 && $n <= 12 && $pct >= 0 && $pct <= 100) {
+					$out[$n] = $pct;
+				}
 			}
 		}
+		ksort($out);
 		return $out;
+	}
+
+	/** Tabela de acréscimo normalizada para gravar e reexibir ("2=3.5; 3=4.9"). */
+	public static function formatRateTable(array $table) {
+		$parts = array();
+		foreach ($table as $n => $pct) {
+			$parts[] = (int)$n . '=' . rtrim(rtrim(number_format((float)$pct, 4, '.', ''), '0'), '.');
+		}
+		return implode('; ', $parts);
 	}
 
 	/** IP real do comprador para o antifraude (cabeçalho de proxy só se o lojista confiar nele). */
